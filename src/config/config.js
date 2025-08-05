@@ -1,0 +1,19 @@
+const dotenv = require('dotenv');
+dotenv.config();
+const { 
+  APP_PORT,HOST,USER,PASSWORD,DB,PORT,
+  FRONTEND_URL,BACKEND_URL,PRODUCT_SERVICE,AUTH_SERVICE
+}= process.env;
+
+module.exports = {
+  APP_PORT,
+  HOST,
+  USER,
+  PASSWORD,
+  DB,
+  PORT,
+  FRONTEND_URL,
+  BACKEND_URL,
+  PRODUCT_SERVICE,
+  AUTH_SERVICE
+};
