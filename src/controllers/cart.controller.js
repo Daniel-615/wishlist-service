@@ -12,15 +12,19 @@ class CartController {
     }
 
     try {
-      const usuarioResponse = await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`);
-      if (!usuarioResponse || !usuarioResponse.data) {
-        return res.status(404).send({ message: "Usuario no encontrado en el servicio de autenticación." });
-      }
+      await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
+        withCredentials: true,
+        headers: {
+          Cookie: req.headers.cookie
+        }
+      });
 
-      const productoResponse = await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`);
-      if (!productoResponse || !productoResponse.data) {
-        return res.status(404).send({ message: "Producto no encontrado en el servicio de productos." });
-      }
+      await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
+        withCredentials: true,
+        headers: {
+          Cookie: req.headers.cookie
+        }
+      });
 
       const existente = await Cart.findOne({ where: { user_id, product_id } });
 
@@ -40,8 +44,8 @@ class CartController {
       });
 
     } catch (err) {
-      if (err.response && err.response.status === 404) {
-        return res.status(404).send({ message: "Usuario o producto no encontrado en los microservicios." });
+      if (err.response?.status === 404) {
+        return res.status(404).send({ message: "Usuario o producto no encontrado." });
       }
       console.error("Error en addToCart:", err.message);
       res.status(500).send({ message: err.message || "Error al agregar al carrito." });
@@ -73,6 +77,20 @@ class CartController {
     }
 
     try {
+      await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
+        withCredentials: true,
+        headers: {
+          Cookie: req.headers.cookie
+        }
+      });
+
+      await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
+        withCredentials: true,
+        headers: {
+          Cookie: req.headers.cookie
+        }
+      });
+
       const item = await Cart.findOne({ where: { user_id, product_id } });
 
       if (!item) {
@@ -85,6 +103,9 @@ class CartController {
       res.send({ message: "Cantidad actualizada.", cart: item });
 
     } catch (err) {
+      if (err.response?.status === 404) {
+        return res.status(404).send({ message: "Usuario o producto no encontrado." });
+      }
       res.status(500).send({ message: "Error al actualizar el carrito." });
     }
   }
@@ -93,6 +114,20 @@ class CartController {
     const { user_id, product_id } = req.params;
 
     try {
+      await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
+        withCredentials: true,
+        headers: {
+          Cookie: req.headers.cookie
+        }
+      });
+
+      await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
+        withCredentials: true,
+        headers: {
+          Cookie: req.headers.cookie
+        }
+      });
+
       const deleted = await Cart.destroy({ where: { user_id, product_id } });
 
       if (deleted === 1) {
@@ -102,6 +137,9 @@ class CartController {
       }
 
     } catch (err) {
+      if (err.response?.status === 404) {
+        return res.status(404).send({ message: "Usuario o producto no encontrado." });
+      }
       res.status(500).send({ message: "Error al eliminar del carrito." });
     }
   }
@@ -110,10 +148,20 @@ class CartController {
     const user_id = req.params.user_id;
 
     try {
+      await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
+        withCredentials: true,
+        headers: {
+          Cookie: req.headers.cookie
+        }
+      });
+
       const deleted = await Cart.destroy({ where: { user_id } });
 
       res.send({ message: `${deleted} producto(s) eliminado(s) del carrito.` });
     } catch (err) {
+      if (err.response?.status === 404) {
+        return res.status(404).send({ message: "Usuario no encontrado." });
+      }
       res.status(500).send({ message: "Error al vaciar el carrito." });
     }
   }
