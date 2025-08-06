@@ -10,6 +10,15 @@ class CartRoute {
   }
 
   registerRoutes() {
+    this.router.delete("/clear/:user_id", (req, res) => {
+      try {
+        this.controller.clearCart(req, res);
+      } catch (err) {
+        console.error("Error en la ruta DELETE /cart/clear/:user_id:", err);
+        res.status(500).json({ error: "Error en el servidor" });
+      }
+    });
+
     // Agregar producto al carrito
     this.router.post("/", (req, res) => {
       try {
@@ -46,16 +55,6 @@ class CartRoute {
         this.controller.removeFromCart(req, res);
       } catch (err) {
         console.error("Error en la ruta DELETE /cart/:user_id/:product_id:", err);
-        res.status(500).json({ error: "Error en el servidor" });
-      }
-    });
-
-    // Vaciar todo el carrito de un usuario
-    this.router.delete("/clear/:user_id", (req, res) => {
-      try {
-        this.controller.clearCart(req, res);
-      } catch (err) {
-        console.error("Error en la ruta DELETE /cart/clear/:user_id:", err);
         res.status(500).json({ error: "Error en el servidor" });
       }
     });

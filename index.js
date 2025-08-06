@@ -31,7 +31,7 @@ class Server {
 
   async connectDatabase() {
     try {
-      await db.sequelize.sync({alter: true}); // o sync({ force: true }) si estás en desarrollo
+      await db.sequelize.sync(); // o sync({ force: true }) si estás en desarrollo
       console.log('Base de datos conectada y sincronizada.');
 
       const tables = await db.sequelize.getQueryInterface().showAllTables();

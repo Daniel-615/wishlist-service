@@ -4,51 +4,68 @@ const axios = require("axios");
 const { PRODUCT_SERVICE, AUTH_SERVICE } = require('../config/config.js');
 
 class CartController {
+  async verifyUserAndProduct(user_id, product_id, cookie) {
+    try {
+      const auth_response = await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
+        withCredentials: true,
+        headers: { Cookie: cookie }
+      });
+
+      if (auth_response.status !== 200) throw new Error("Usuario no válido.");
+
+      if (product_id) {
+        const producto_response = await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
+          withCredentials: true,
+          headers: { Cookie: cookie }
+        });
+
+        if (producto_response.status !== 200) throw new Error("Producto no válido.");
+      }
+    } catch (err) {
+      const status = err.response?.status || 500;
+      const message = err.response?.data?.message || err.message;
+      const error = new Error(message);
+      error.status = status;
+      throw error;
+    }
+  }
+
   async addToCart(req, res) {
     const { user_id, product_id, cantidad } = req.body;
 
     if (!user_id || !product_id || cantidad === undefined) {
-      return res.status(400).send({ message: "Los campos user_id, product_id y cantidad son obligatorios." });
+      return res.status(400).send({
+        success: false,
+        message: "Los campos user_id, product_id y cantidad son obligatorios.",
+      });
     }
 
     try {
-      await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
-        withCredentials: true,
-        headers: {
-          Cookie: req.headers.cookie
-        }
-      });
-
-      await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
-        withCredentials: true,
-        headers: {
-          Cookie: req.headers.cookie
-        }
-      });
+      await this.verifyUserAndProduct(user_id, product_id, req.headers.cookie);
 
       const existente = await Cart.findOne({ where: { user_id, product_id } });
-
       if (existente) {
         existente.cantidad += cantidad;
         await existente.save();
         return res.status(200).send({
+          success: true,
           message: "Cantidad actualizada en el carrito.",
-          cart: existente,
+          data: existente,
         });
       }
 
       const nuevo = await Cart.create({ user_id, product_id, cantidad });
       res.status(201).send({
+        success: true,
         message: "Producto agregado al carrito.",
-        cart: nuevo,
+        data: nuevo,
       });
 
     } catch (err) {
-      if (err.response?.status === 404) {
-        return res.status(404).send({ message: "Usuario o producto no encontrado." });
-      }
-      console.error("Error en addToCart:", err.message);
-      res.status(500).send({ message: err.message || "Error al agregar al carrito." });
+      res.status(err.status || 500).send({
+        success: false,
+        message: err.message,
+      });
     }
   }
 
@@ -56,15 +73,42 @@ class CartController {
     const user_id = req.params.user_id;
 
     try {
+      await this.verifyUserAndProduct(user_id, null, req.headers.cookie);
+
       const items = await Cart.findAll({ where: { user_id } });
 
-      if (items.length === 0) {
-        return res.status(404).send({ message: "Carrito vacío o usuario no encontrado." });
-      }
+      const enrichedItems = await Promise.all(
+        items.map(async (item) => {
+          try {
+            const producto_response = await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${item.product_id}`, {
+              withCredentials: true,
+              headers: { Cookie: req.headers.cookie }
+            });
 
-      res.send(items);
+            return {
+              ...item.dataValues,
+              producto: producto_response.data
+            };
+          } catch {
+            return {
+              ...item.dataValues,
+              producto: null,
+              error: "Producto no encontrado"
+            };
+          }
+        })
+      );
+      res.status(200).send({
+        success: true,
+        message: "Carrito obtenido.",
+        data: enrichedItems,
+      });
+
     } catch (err) {
-      res.status(500).send({ message: "Error al obtener el carrito." });
+      res.status(err.status || 500).send({
+        success: false,
+        message: err.message,
+      });
     }
   }
 
@@ -73,40 +117,37 @@ class CartController {
     const { cantidad } = req.body;
 
     if (cantidad === undefined || cantidad < 1) {
-      return res.status(400).send({ message: "Cantidad inválida." });
+      return res.status(400).send({
+        success: false,
+        message: "Cantidad inválida.",
+      });
     }
 
     try {
-      await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
-        withCredentials: true,
-        headers: {
-          Cookie: req.headers.cookie
-        }
-      });
-
-      await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
-        withCredentials: true,
-        headers: {
-          Cookie: req.headers.cookie
-        }
-      });
-
       const item = await Cart.findOne({ where: { user_id, product_id } });
 
       if (!item) {
-        return res.status(404).send({ message: "Producto no encontrado en el carrito." });
+        return res.status(404).send({
+          success: false,
+          message: "Producto no encontrado en el carrito.",
+        });
       }
 
       item.cantidad = cantidad;
       await item.save();
 
-      res.send({ message: "Cantidad actualizada.", cart: item });
+      res.send({
+        success: true,
+        message: "Cantidad actualizada.",
+        data: item,
+      });
 
     } catch (err) {
-      if (err.response?.status === 404) {
-        return res.status(404).send({ message: "Usuario o producto no encontrado." });
-      }
-      res.status(500).send({ message: "Error al actualizar el carrito." });
+      res.status(500).send({
+        success: false,
+        message: "Error al actualizar el carrito.",
+        error: err.message,
+      });
     }
   }
 
@@ -114,55 +155,45 @@ class CartController {
     const { user_id, product_id } = req.params;
 
     try {
-      await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
-        withCredentials: true,
-        headers: {
-          Cookie: req.headers.cookie
-        }
-      });
-
-      await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
-        withCredentials: true,
-        headers: {
-          Cookie: req.headers.cookie
-        }
-      });
-
       const deleted = await Cart.destroy({ where: { user_id, product_id } });
 
       if (deleted === 1) {
-        res.send({ message: "Producto eliminado del carrito." });
+        res.send({
+          success: true,
+          message: "Producto eliminado del carrito.",
+        });
       } else {
-        res.status(404).send({ message: "Producto no encontrado en el carrito." });
+        res.status(404).send({
+          success: false,
+          message: "Producto no encontrado en el carrito.",
+        });
       }
 
     } catch (err) {
-      if (err.response?.status === 404) {
-        return res.status(404).send({ message: "Usuario o producto no encontrado." });
-      }
-      res.status(500).send({ message: "Error al eliminar del carrito." });
+      res.status(500).send({
+        success: false,
+        message: `Error al eliminar del carrito. ${err}`,
+        error: err.message,
+      });
     }
   }
 
   async clearCart(req, res) {
     const user_id = req.params.user_id;
-
     try {
-      await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
-        withCredentials: true,
-        headers: {
-          Cookie: req.headers.cookie
-        }
-      });
-
       const deleted = await Cart.destroy({ where: { user_id } });
 
-      res.send({ message: `${deleted} producto(s) eliminado(s) del carrito.` });
+      return res.status(200).send({
+        success: true,
+        data: { deleted },
+        message: `${deleted} producto(s) eliminado(s) del carrito.`,
+      });
     } catch (err) {
-      if (err.response?.status === 404) {
-        return res.status(404).send({ message: "Usuario no encontrado." });
-      }
-      res.status(500).send({ message: "Error al vaciar el carrito." });
+      res.status(500).send({
+        success: false,
+        message: "Error al vaciar el carrito.",
+        error: err.message,
+      });
     }
   }
 }
