@@ -1,56 +1,42 @@
 const db = require("../models");
 const Wishlist = db.getModel("Wishlist");
 const axios = require("axios");
-const { PRODUCT_SERVICE, AUTH_SERVICE } = require('../config/config.js');
+const { PRODUCT_SERVICE, AUTH_SERVICE } = require("../config/config.js");
 
 class WishlistController {
   async addToWishlist(req, res) {
-    const { user_id, product_id } = req.body;
+    const {user_id} = req.body;
+    const { product_id } = req.body;
     if (!user_id || !product_id) {
       return res.status(400).send({ message: "Los campos user_id y product_id son obligatorios." });
     }
+
     try {
-      // Validar existencia del usuario
-      const userRes = await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
+      // Validar usuario
+      await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
         withCredentials: true,
-        headers: { Cookie: req.headers.cookie }
+        headers: { Cookie: req.headers.cookie || "" },
       });
-      console.err(userRes)
-      if (userRes.status !== 200) {
-        return res.status(403).send({ message: "El usuario no está autorizado o no existe." });
-      }
 
-      // Validar existencia del producto
-      const productRes = await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
+      // Validar producto
+      await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
         withCredentials: true,
-        headers: { Cookie: req.headers.cookie }
+        headers: { Cookie: req.headers.cookie || "" },
       });
-      if (productRes.status !== 200) {
-        return res.status(403).send({ message: "El producto no está autorizado o no existe." });
-      }
-
       const existente = await Wishlist.findOne({ where: { user_id, product_id } });
-
       if (existente) {
         return res.status(400).send({ message: "Este producto ya está en la wishlist del usuario." });
       }
-
       const nuevo = await Wishlist.create({ user_id, product_id });
-      res.status(201).send({
-        message: "Producto agregado a la wishlist.",
-        wishlist: nuevo
-      });
-
+      return res.status(201).send({ message: "Producto agregado a la wishlist.", wishlist: nuevo });
     } catch (err) {
       if (err.response?.status === 404) {
         return res.status(404).send({ message: "Usuario o producto no encontrado." });
       }
-      if (err.response?.status === 403 || err.response?.status === 401) {
-        return res.status(403).send({ message: "Acceso denegado a los servicios de autenticación o productos." });
+      if ([401, 403].includes(err.response?.status)) {
+        return res.status(403).send({ message: "Acceso denegado a autenticación o productos." });
       }
-
-      console.error("Error en addToWishlist:", err.message);
-      res.status(500).send({ message: "Error interno al agregar a la wishlist." });
+      return res.status(500).send({ message: "Error interno al agregar a la wishlist." });
     }
   }
 
@@ -58,88 +44,99 @@ class WishlistController {
     const user_id = req.params.user_id;
 
     try {
-      const items = await Wishlist.findAll({ where: { user_id } });
+      const rows = await Wishlist.findAll({
+        where: { user_id },
+        attributes: ["product_id"],
+      });
 
-      if (items.length === 0) {
-        return res.status(404).send({ message: "Wishlist vacía o usuario no encontrado." });
-      }
+      // SIEMPRE devolver array
+      if (rows.length === 0) return res.status(200).send([]);
 
-      res.send(items);
+      const cookie = req.headers.cookie || "";
+      const items = await Promise.all(
+        rows.map(async (r) => {
+          try {
+            const { data: prod } = await axios.get(
+              `${PRODUCT_SERVICE}/producto-service/producto/${r.product_id}`,
+              { withCredentials: true, headers: { Cookie: cookie } }
+            );
+
+            return {
+              producto: {
+                id: prod.id,
+                nombre: prod.nombre,
+                precio: prod.precio,
+                descripcion: prod.descripcion ?? null,
+                stock: prod.stock ?? null,
+                marcaId: prod.marcaId ?? null,
+                categoriaId: prod.categoriaId ?? null,
+                marca: prod.marca ?? null,
+                categoria: prod.categoria ?? null,
+              },
+            };
+          } catch {
+            return res.status(400).send({ producto: null, product_id: r.product_id, error: "No se pudo obtener datos del producto" });
+          }
+        })
+      );
+
+      return res.status(200).send(items);
     } catch (err) {
       console.error("Error en getWishlistByUser:", err.message);
-      res.status(500).send({ message: "Error al obtener la wishlist." });
+      return res.status(500).send({ message: "Error al obtener la wishlist." });
     }
   }
 
   async removeFromWishlist(req, res) {
-    const { user_id, product_id } = req.params;
-
+    const user_id = req.params.user_id;
+    const product_id = req.params.product_id;
     try {
-      // Validar existencia del usuario
-      const userRes = await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
-        withCredentials: true,
-        headers: { Cookie: req.headers.cookie }
-      });
-      if (userRes.status !== 200) {
-        return res.status(403).send({ message: "El usuario no está autorizado o no existe." });
-      }
 
-      // Validar existencia del producto
-      const productRes = await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
+      await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
         withCredentials: true,
-        headers: { Cookie: req.headers.cookie }
+        headers: { Cookie: req.headers.cookie || "" },
       });
-      if (productRes.status !== 200) {
-        return res.status(403).send({ message: "El producto no está autorizado o no existe." });
-      }
+
+
+      await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
+        withCredentials: true,
+        headers: { Cookie: req.headers.cookie || "" },
+      });
 
       const deleted = await Wishlist.destroy({ where: { user_id, product_id } });
+      if (deleted === 1) return res.send({ message: "Producto eliminado de la wishlist." });
 
-      if (deleted === 1) {
-        res.send({ message: "Producto eliminado de la wishlist." });
-      } else {
-        res.status(404).send({ message: "Producto no encontrado en la wishlist." });
-      }
-
+      return res.status(404).send({ message: "Producto no encontrado en la wishlist." });
     } catch (err) {
       if (err.response?.status === 404) {
         return res.status(404).send({ message: "Usuario o producto no encontrado." });
       }
-      if (err.response?.status === 403 || err.response?.status === 401) {
-        return res.status(403).send({ message: "Acceso denegado a los servicios de autenticación o productos." });
+      if ([401, 403].includes(err.response?.status)) {
+        return res.status(403).send({ message: "Acceso denegado a autenticación o productos." });
       }
-
-      console.error("Error en removeFromWishlist:", err.message);
-      res.status(500).send({ message: "Error al eliminar de la wishlist." });
+      return res.status(500).send({ message: "Error al eliminar de la wishlist." });
     }
   }
 
+
   async clearWishlist(req, res) {
     const user_id = req.params.user_id;
-
     try {
-      // Validar existencia del usuario
-      const userRes = await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
+      await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
         withCredentials: true,
-        headers: { Cookie: req.headers.cookie }
+        headers: { Cookie: req.headers.cookie || "" },
       });
-      if (userRes.status !== 200) {
-        return res.status(403).send({ message: "El usuario no está autorizado o no existe." });
-      }
 
       const deleted = await Wishlist.destroy({ where: { user_id } });
-      res.send({ message: `${deleted} producto(s) eliminado(s) de la wishlist.` });
-
+      return res.send({ message: `${deleted} producto eliminado de la wishlist.` });
     } catch (err) {
       if (err.response?.status === 404) {
         return res.status(404).send({ message: "Usuario no encontrado." });
       }
-      if (err.response?.status === 403 || err.response?.status === 401) {
+      if ([401, 403].includes(err.response?.status)) {
         return res.status(403).send({ message: "Acceso denegado al servicio de autenticación." });
       }
-
-      console.error("Error en clearWishlist:", err.message);
-      res.status(500).send({ message: "Error al vaciar la wishlist." });
+      return res.status(500).send({ message: "Error al vaciar la wishlist." });
     }
   }
 }

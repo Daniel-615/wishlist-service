@@ -15,8 +15,7 @@ class WishlistRoute {
       try {
         this.controller.addToWishlist(req, res);
       } catch (err) {
-        console.error("Error en la ruta POST /wishlist:", err);
-        res.status(500).json({ error: "Error en el servidor" });
+        console.error("Error al agregar a la wishlist:  ",err)
       }
     });
 
@@ -25,30 +24,27 @@ class WishlistRoute {
       try {
         this.controller.getWishlistByUser(req, res);
       } catch (err) {
-        console.error("Error en la ruta GET /wishlist/:user_id:", err);
-        res.status(500).json({ error: "Error en el servidor" });
+        console.error("Error al agregar a la wishlist:  ",err)
       }
     });
-
+      // Vaciar toda la wishlist del usuario
+    this.router.delete("/clear/:user_id", (req, res) => {
+      try {
+        this.controller.clearWishlist(req, res);
+      } catch (err) {
+        console.error("Error al limpiar la wishlist del usuario:  ",err)
+      }
+    });
     // Eliminar producto de la wishlist
     this.router.delete("/:user_id/:product_id", (req, res) => {
       try {
         this.controller.removeFromWishlist(req, res);
       } catch (err) {
-        console.error("Error en la ruta DELETE /wishlist/:user_id/:product_id:", err);
-        res.status(500).json({ error: "Error en el servidor" });
+        console.error("Error al remover de la wishlist :  ",err)
       }
     });
 
-    // Vaciar toda la wishlist del usuario
-    this.router.delete("/clear/:user_id", (req, res) => {
-      try {
-        this.controller.clearWishlist(req, res);
-      } catch (err) {
-        console.error("Error en la ruta DELETE /wishlist/clear/:user_id:", err);
-        res.status(500).json({ error: "Error en el servidor" });
-      }
-    });
+  
   }
 }
 

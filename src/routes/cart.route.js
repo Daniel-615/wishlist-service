@@ -14,8 +14,7 @@ class CartRoute {
       try {
         this.controller.clearCart(req, res);
       } catch (err) {
-        console.error("Error en la ruta DELETE /cart/clear/:user_id:", err);
-        res.status(500).json({ error: "Error en el servidor" });
+        console.error("Error al limpiar el carrito del usuario:  ",err)
       }
     });
 
@@ -24,8 +23,7 @@ class CartRoute {
       try {
         this.controller.addToCart(req, res);
       } catch (err) {
-        console.error("Error en la ruta POST /cart:", err);
-        res.status(500).json({ error: "Error en el servidor" });
+        console.error("Error al agregar un producto al carrito:  ",err)
       }
     });
 
@@ -34,8 +32,7 @@ class CartRoute {
       try {
         this.controller.getCartByUser(req, res);
       } catch (err) {
-        console.error("Error en la ruta GET /cart/:user_id:", err);
-        res.status(500).json({ error: "Error en el servidor" });
+        console.error("Error al obtener el carrito del usuario:  ",err)
       }
     });
 
@@ -44,8 +41,7 @@ class CartRoute {
       try {
         this.controller.updateCartItem(req, res);
       } catch (err) {
-        console.error("Error en la ruta PUT /cart/:user_id/:product_id:", err);
-        res.status(500).json({ error: "Error en el servidor" });
+        console.error("Error al actualizar producto del carrito:  ",err)
       }
     });
 
@@ -54,8 +50,7 @@ class CartRoute {
       try {
         this.controller.removeFromCart(req, res);
       } catch (err) {
-        console.error("Error en la ruta DELETE /cart/:user_id/:product_id:", err);
-        res.status(500).json({ error: "Error en el servidor" });
+        console.error("Error al eliminar productos del carrito:  ",err)
       }
     });
   }
