@@ -23,6 +23,7 @@ class WishlistController {
         withCredentials: true,
         headers: { Cookie: req.headers.cookie || "" },
       });
+      
       const existente = await Wishlist.findOne({ where: { user_id, product_id } });
       if (existente) {
         return res.status(400).send({ message: "Este producto ya está en la wishlist del usuario." });
@@ -36,7 +37,7 @@ class WishlistController {
       if ([401, 403].includes(err.response?.status)) {
         return res.status(403).send({ message: "Acceso denegado a autenticación o productos." });
       }
-      return res.status(500).send({ message: "Error interno al agregar a la wishlist." });
+      return res.status(500).send({ message: "Error interno al agregar a la wishlist."+err.message });
     }
   }
 
@@ -60,7 +61,6 @@ class WishlistController {
               `${PRODUCT_SERVICE}/producto-service/producto/${r.product_id}`,
               { withCredentials: true, headers: { Cookie: cookie } }
             );
-
             return {
               producto: {
                 id: prod.id,
