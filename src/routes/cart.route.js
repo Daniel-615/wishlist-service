@@ -46,7 +46,7 @@ class CartRoute {
     });
 
     // Eliminar producto específico del carrito
-    this.router.delete("/:user_id/:product_id", (req, res) => {
+    this.router.delete("/:user_id/:producto_talla_color_id", (req, res) => {
       try {
         this.controller.removeFromCart(req, res);
       } catch (err) {

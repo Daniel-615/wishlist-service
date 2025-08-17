@@ -36,7 +36,7 @@ class WishlistRoute {
       }
     });
     // Eliminar producto de la wishlist
-    this.router.delete("/:user_id/:product_id", (req, res) => {
+    this.router.delete("/:user_id/:producto_talla_color_id", (req, res) => {
       try {
         this.controller.removeFromWishlist(req, res);
       } catch (err) {

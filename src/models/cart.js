@@ -9,7 +9,7 @@ module.exports = (sequelize) => {
         type: DataTypes.UUID,
         allowNull: false,
       },
-      product_id: {
+      producto_talla_color_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
@@ -26,5 +26,6 @@ module.exports = (sequelize) => {
       timestamps: false,
     }
   );
+
   return Cart;
 };

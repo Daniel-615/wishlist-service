@@ -4,8 +4,9 @@ const axios = require("axios");
 const { PRODUCT_SERVICE, AUTH_SERVICE } = require('../config/config.js');
 
 class CartController {
-  async verifyUserAndProduct(user_id, product_id, cookie) {
+  async verifyUserAndProduct(user_id, producto_talla_color_id, cookie) {
     try {
+      // Verificar usuario
       const auth_response = await axios.get(`${AUTH_SERVICE}/auth-service/usuario/findOne/${user_id}`, {
         withCredentials: true,
         headers: { Cookie: cookie }
@@ -13,8 +14,9 @@ class CartController {
 
       if (auth_response.status !== 200) throw new Error("Usuario no válido.");
 
-      if (product_id) {
-        const producto_response = await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${product_id}`, {
+      // Verificar producto solo si se proporciona
+      if (producto_talla_color_id) {
+        const producto_response = await axios.get(`${PRODUCT_SERVICE}/producto-service/producto-talla/${producto_talla_color_id}`, {
           withCredentials: true,
           headers: { Cookie: cookie }
         });
@@ -31,19 +33,18 @@ class CartController {
   }
 
   async addToCart(req, res) {
-    const { user_id, product_id, cantidad } = req.body;
-
-    if (!user_id || !product_id || cantidad === undefined) {
+    const { user_id, producto_talla_color_id, cantidad } = req.body;
+    if (!user_id || !producto_talla_color_id || cantidad === undefined) {
       return res.status(400).send({
         success: false,
-        message: "Los campos user_id, product_id y cantidad son obligatorios.",
+        message: "Los campos user_id, producto_talla_color_id y cantidad son obligatorios.",
       });
     }
 
     try {
-      await this.verifyUserAndProduct(user_id, product_id, req.headers.cookie);
+      await this.verifyUserAndProduct(user_id, producto_talla_color_id, req.headers.cookie);
 
-      const existente = await Cart.findOne({ where: { user_id, product_id } });
+      const existente = await Cart.findOne({ where: { user_id, producto_talla_color_id } });
       if (existente) {
         existente.cantidad += cantidad;
         await existente.save();
@@ -54,7 +55,7 @@ class CartController {
         });
       }
 
-      const nuevo = await Cart.create({ user_id, product_id, cantidad });
+      const nuevo = await Cart.create({ user_id, producto_talla_color_id, cantidad });
       res.status(201).send({
         success: true,
         message: "Producto agregado al carrito.",
@@ -62,6 +63,7 @@ class CartController {
       });
 
     } catch (err) {
+      console.error(err)
       res.status(err.status || 500).send({
         success: false,
         message: err.message,
@@ -76,22 +78,20 @@ class CartController {
       await this.verifyUserAndProduct(user_id, null, req.headers.cookie);
 
       const items = await Cart.findAll({ where: { user_id } });
-
       const enrichedItems = await Promise.all(
         items.map(async (item) => {
           try {
-            const producto_response = await axios.get(`${PRODUCT_SERVICE}/producto-service/producto/${item.product_id}`, {
+            const producto_response = await axios.get(`${PRODUCT_SERVICE}/producto-service/producto-talla/${item.producto_talla_color_id}`, {
               withCredentials: true,
               headers: { Cookie: req.headers.cookie }
             });
-
             return {
-              ...item.dataValues,
+              ...item.get({ plain: true }),
               producto: producto_response.data
             };
           } catch {
             return {
-              ...item.dataValues,
+              ...item.get({ plain: true }),
               producto: null,
               error: "Producto no encontrado"
             };
@@ -113,7 +113,7 @@ class CartController {
   }
 
   async updateCartItem(req, res) {
-    const { user_id, product_id } = req.params;
+    const { user_id, producto_talla_color_id } = req.params;
     const { cantidad } = req.body;
 
     if (cantidad === undefined || cantidad < 1) {
@@ -124,7 +124,7 @@ class CartController {
     }
 
     try {
-      const item = await Cart.findOne({ where: { user_id, product_id } });
+      const item = await Cart.findOne({ where: { user_id, producto_talla_color_id } });
 
       if (!item) {
         return res.status(404).send({
@@ -152,10 +152,10 @@ class CartController {
   }
 
   async removeFromCart(req, res) {
-    const { user_id, product_id } = req.params;
+    const { user_id, producto_talla_color_id } = req.params;
 
     try {
-      const deleted = await Cart.destroy({ where: { user_id, product_id } });
+      const deleted = await Cart.destroy({ where: { user_id, producto_talla_color_id } });
 
       if (deleted === 1) {
         res.send({
