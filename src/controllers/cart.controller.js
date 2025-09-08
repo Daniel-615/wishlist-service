@@ -2,6 +2,7 @@ const db = require("../models");
 const Cart = db.getModel("Cart");
 const axios = require("axios");
 const { PRODUCT_SERVICE, AUTH_SERVICE } = require('../config/config.js');
+const { enviarCorreoCarrito, programarCorreoCarritoNextDay } = require("../middleware/mailer.js");
 
 class CartController {
   async verifyUserAndProduct(user_id, producto_talla_color_id, cookie) {
@@ -22,6 +23,10 @@ class CartController {
         });
 
         if (producto_response.status !== 200) throw new Error("Producto no válido.");
+        return {
+          usuario: auth_response.data,
+          producto: producto_response.data.productoColor
+        }
       }
     } catch (err) {
       const status = err.response?.status || 500;
@@ -42,9 +47,17 @@ class CartController {
     }
 
     try {
-      await this.verifyUserAndProduct(user_id, producto_talla_color_id, req.headers.cookie);
-
+      const {usuario, producto}=await this.verifyUserAndProduct(user_id, producto_talla_color_id, req.headers.cookie);
       const existente = await Cart.findOne({ where: { user_id, producto_talla_color_id } });
+      const itemCarritoSend={
+        imagenUrl: producto.imagenUrl,
+        nombre: producto.producto?.nombre,
+        precio: producto.producto?.precio,
+        cantidad: cantidad
+      }
+      if (usuario?.email) {
+        programarCorreoCarritoNextDay(usuario.email, [itemCarritoSend], { currency: "GTQ" });
+      }
       if (existente) {
         existente.cantidad += cantidad;
         await existente.save();
@@ -56,12 +69,12 @@ class CartController {
       }
 
       const nuevo = await Cart.create({ user_id, producto_talla_color_id, cantidad });
+      
       res.status(201).send({
         success: true,
         message: "Producto agregado al carrito.",
         data: nuevo,
       });
-
     } catch (err) {
       console.error(err)
       res.status(err.status || 500).send({

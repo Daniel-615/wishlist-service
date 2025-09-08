@@ -13,12 +13,25 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      share_id:{
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true
+      },
+      share_expires_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      is_shared:{
+        type:DataTypes.BOOLEAN,
+        defaultValue: false
+      }
     },
     {
       sequelize,
       modelName: 'wishlist',
       tableName: 'wishlists',
-      timestamps: false,
+      timestamps: true,
     }
   );
   return Wishlist;

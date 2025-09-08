@@ -10,6 +10,18 @@ class WishlistRoute {
   }
 
   registerRoutes() {
+    //SHARE
+    //PRIVADO
+    this.router.post("/share/:userId",  (req,res)=>{
+      this.controller.postUrlShare(req,res);
+    })
+    //PRIVADO
+    this.router.delete("/share/:userId",(req,res)=>{
+      this.controller.revokeShareLink(req,res);
+    })
+    this.router.get("/shared/:shareId",(req,res)=>{
+      this.controller.getSharedWishlistPublic(req,res);
+    })
     // Agregar producto a la wishlist
     this.router.post("/", (req, res) => {
       try {
@@ -44,7 +56,6 @@ class WishlistRoute {
       }
     });
 
-  
   }
 }
 
