@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { APP_PORT,FRONTEND_URL } = require('./src/config/config.js')
+const { APP_PORT,API_GATEWAY_URL } = require('./src/config/config.js')
 const db = require('./src/models'); 
 const CartRoute= require('./src/routes/cart.route.js')
 const WishlistRoute= require('./src/routes/wishlist.route.js')
@@ -17,7 +17,7 @@ class Server {
 
   configureMiddlewares() {
     this.app.use(cors({
-      origin: FRONTEND_URL,
+      origin: API_GATEWAY_URL,
       credentials: true // Permitir cookies y credenciales
     }));
     this.app.use(bodyParser.json());
