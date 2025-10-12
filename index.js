@@ -1,14 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { APP_PORT,API_GATEWAY_URL } = require('./src/config/config.js')
+const { PORT,API_GATEWAY_URL } = require('./src/config/config.js')
 const db = require('./src/models'); 
 const CartRoute= require('./src/routes/cart.route.js')
 const WishlistRoute= require('./src/routes/wishlist.route.js')
 class Server {
   constructor() {
     this.app = express();
-    this.port = APP_PORT;
+    this.port = PORT;
     this.app.use(express.json()); // Middleware para parsear JSON
     this.configureMiddlewares();
     this.configureRoutes();

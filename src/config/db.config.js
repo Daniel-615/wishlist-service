@@ -1,11 +1,11 @@
-const {HOST, USER,PASSWORD,DB,PORT}= require('./config.js'); 
+const {HOST, USER,PASSWORD,DB,DB_PORT}= require('./config.js'); 
 class DBConfig {
   constructor() {
     this.HOST = HOST
     this.USER = USER
     this.PASSWORD = PASSWORD
     this.DB = DB
-    this.PORT = PORT
+    this.PORT = DB_PORT
     this.dialect = "postgres"
     this.pool = {
       max: 5,
