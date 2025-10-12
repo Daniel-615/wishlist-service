@@ -10,12 +10,10 @@ class WishlistRoute {
   }
 
   registerRoutes() {
-    //SHARE
-    //PRIVADO
     this.router.post("/share/:userId",  (req,res)=>{
       this.controller.postUrlShare(req,res);
     })
-    //PRIVADO
+
     this.router.delete("/share/:userId",(req,res)=>{
       this.controller.revokeShareLink(req,res);
     })

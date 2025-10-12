@@ -128,7 +128,6 @@ class CartController {
   async updateCartItem(req, res) {
     const { user_id, producto_talla_color_id } = req.params;
     const { cantidad } = req.body;
-
     if (cantidad === undefined || cantidad < 1) {
       return res.status(400).send({
         success: false,

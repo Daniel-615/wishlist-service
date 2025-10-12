@@ -37,11 +37,12 @@ class CartRoute {
     });
 
     // Actualizar cantidad de producto en el carrito
-    this.router.put("/:user_id/:product_id", (req, res) => {
+    this.router.put("/:user_id/:producto_talla_color_id", (req, res) => {
       try {
         this.controller.updateCartItem(req, res);
+        
       } catch (err) {
-        console.error("Error al actualizar producto del carrito:  ",err)
+        console.error("Error al actualizar producto del carrito:  ",err.message)
       }
     });
 
