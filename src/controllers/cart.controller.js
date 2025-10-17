@@ -192,6 +192,13 @@ class CartController {
 
   async clearCart(req, res) {
     const user_id = req.params.user_id;
+    if(!user_id){
+      return res
+        .status(500)
+        .send({
+          message: "No viene el user_id en la ruta."
+        })
+    }
     try {
       const deleted = await Cart.destroy({ where: { user_id } });
 
