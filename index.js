@@ -52,16 +52,13 @@ class Server {
         version: '1.0.0',
         description: 'API de carrito y wishlist (con enlaces compartidos y recordatorios).',
       },
-      servers: [
-        { url: `http://localhost:${this.port}/cart-wishlist-service` },
-      ],
+      servers: [{ url: `http://localhost:${this.port}/cart-wishlist-service` }],
       components: {
         securitySchemes: {
           bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
           cookieAuth: { type: 'apiKey', in: 'cookie', name: 'access_token' },
         },
         schemas: {
-          // === Cart Schemas ===
           CartItem: {
             type: 'object',
             properties: {
@@ -101,8 +98,6 @@ class Server {
               error: { type: 'string', nullable: true, example: 'Producto no encontrado' }
             }
           },
-
-          // === Wishlist Schemas ===
           WishlistItem: {
             type: 'object',
             properties: {
@@ -179,16 +174,12 @@ class Server {
               }
             }
           },
-
-          // === Genérico ===
           ErrorResponse: {
             type: 'object',
             properties: { message: { type: 'string', example: 'Descripción del error.' } }
           }
         }
-      },
-      // Si quieres exigir auth global:
-      // security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+      }
     };
 
     const openapi = swaggerJsdoc({
@@ -199,16 +190,16 @@ class Server {
       ],
     });
 
-    // JSON del spec
-    this.app.get('/openapi.json', (_req, res) => res.json(openapi));
+    // Spec JSON (no cache para evitar stale)
+    this.app.get('/openapi.json', (_req, res) => {
+      res.set('Cache-Control', 'no-store');
+      res.json(openapi);
+    });
 
-    // UI de Scalar
+    // UI Scalar — configuración mínima VÁLIDA
     this.app.use('/docs', apiReference({
-      url: '/openapi.json',
-      theme: 'purple',  // opcional
-      layout: 'modern', // opcional
-      defaultHttpClient: { targetKey: 'javascript' },
-      hideDownloadButton: false
+      spec: { url: '/openapi.json' }
+      // No pasar theme, layout, defaultHttpClient, etc.
     }));
   }
 
